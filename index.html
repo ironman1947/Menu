@@ -1,0 +1,2757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121212">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Royal Bistro • NFC Digital Menu</title>
+
+  <!-- Google Fonts: Script Font for Ribbons + Modern Sans for Items -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playball&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       CSS RESET & DESIGN TOKENS
+       ========================================================================== */
+    :root {
+      --bg-dark: #121212;
+      --bg-surface: #181818;
+      --bg-card: #1e1e1e;
+      --bg-card-back: #232323;
+      --primary-orange: #f58220;
+      --primary-orange-glow: rgba(245, 130, 32, 0.45);
+      --primary-orange-light: #ff9d3b;
+      --primary-orange-dark: #cc6008;
+      --text-white: #ffffff;
+      --text-offwhite: #f0f0f0;
+      --text-muted: #9e9e9e;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(245, 130, 32, 0.55);
+      --veg-green: #2ecc71;
+      --non-veg-red: #e74c3c;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-script: 'Playball', 'Dancing Script', cursive;
+      --shadow-card: 0 10px 24px -4px rgba(0, 0, 0, 0.65);
+      --shadow-neon: 0 0 20px rgba(245, 130, 32, 0.4), 0 0 35px rgba(245, 130, 32, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      background-color: #0a0a0a;
+      color: var(--text-offwhite);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    /* Desktop Viewport Wrapper for Native Smartphone Preview */
+    .app-viewport {
+      max-width: 440px;
+      margin: 0 auto;
+      background: var(--bg-dark);
+      min-height: 100vh;
+      position: relative;
+      box-shadow: 0 0 70px rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 110px; /* space for sticky cart bar */
+    }
+
+    @media (min-width: 600px) {
+      body {
+        padding: 24px 0;
+        background: radial-gradient(circle at 50% 15%, #242424 0%, #070707 100%);
+      }
+      .app-viewport {
+        border-radius: 38px;
+        border: 2.5px solid rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+      }
+    }
+
+    /* ==========================================================================
+       APP HEADER & NFC VERIFICATION BADGE
+       ========================================================================== */
+    .app-header {
+      position: relative;
+      background: linear-gradient(180deg, #222222 0%, #151515 100%);
+      padding: 16px 18px 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .header-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .nfc-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(46, 204, 113, 0.12);
+      border: 1px solid rgba(46, 204, 113, 0.35);
+      color: #2ecc71;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 4px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nfc-status-pill:active {
+      transform: scale(0.95);
+      background: rgba(46, 204, 113, 0.25);
+    }
+
+    .nfc-dot {
+      width: 7px;
+      height: 7px;
+      background: #2ecc71;
+      border-radius: 50%;
+      animation: pulseGreen 1.8s infinite;
+    }
+
+    @keyframes pulseGreen {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+      70% { transform: scale(1.25); box-shadow: 0 0 0 7px rgba(46, 204, 113, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+
+    .table-tag {
+      background: rgba(245, 130, 32, 0.15);
+      border: 1px solid var(--primary-orange);
+      color: var(--primary-orange-light);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 9px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .restaurant-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-white);
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+    }
+
+    .restaurant-title span {
+      color: var(--primary-orange);
+      text-shadow: 0 0 16px rgba(245, 130, 32, 0.4);
+    }
+
+    .header-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Flip Cue Instruction Banner */
+    .flip-instruction-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 130, 32, 0.1);
+      padding: 5px 10px;
+      border-radius: 8px;
+      color: #f7a256;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 10px;
+      border: 1px dashed rgba(245, 130, 32, 0.45);
+    }
+
+    .flip-instruction-badge svg {
+      animation: rotateHint 3s infinite linear;
+    }
+
+    @keyframes rotateHint {
+      0% { transform: rotateY(0deg); }
+      50% { transform: rotateY(180deg); }
+      100% { transform: rotateY(360deg); }
+    }
+
+    /* Live Search Input */
+    .search-box-row {
+      margin-top: 12px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 9px 12px 9px 34px;
+      color: #ffffff;
+      font-family: var(--font-body);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary-orange);
+      box-shadow: 0 0 12px rgba(245, 130, 32, 0.3);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      color: #fff;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Dietary Filter Chips */
+    .filter-pills-row {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-pills-row::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      background: #1e1e1e;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn.active {
+      background: var(--primary-orange);
+      color: #ffffff;
+      border-color: var(--primary-orange);
+      box-shadow: 0 2px 10px rgba(245, 130, 32, 0.35);
+    }
+
+    /* ==========================================================================
+       STICKY CATEGORY NAVIGATION (HORIZONTAL SCROLLING)
+       ========================================================================== */
+    .sticky-nav-container {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(18, 18, 18, 0.94);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 0;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    .category-scroll-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 14px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+
+    .category-scroll-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .category-pill {
+      background: #242424;
+      color: #b0b0b0;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 8px 15px;
+      border-radius: 24px;
+      font-size: 12.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .category-pill:active {
+      transform: scale(0.92);
+    }
+
+    .category-pill.active {
+      background: linear-gradient(135deg, #ff9539 0%, #f58220 100%);
+      color: #ffffff;
+      border-color: #f58220;
+      box-shadow: 0 4px 16px rgba(245, 130, 32, 0.5);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       CATEGORY HEADERS: CUSTOM 3D FOLDED ORANGE RIBBON BANNER
+       ========================================================================== */
+    .ribbon-wrapper {
+      position: relative;
+      margin: 32px 0 16px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+
+    .ribbon-container {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: calc(100% - 64px);
+      max-width: 360px;
+    }
+
+    .ribbon-banner {
+      position: relative;
+      background: linear-gradient(135deg, #ff9436 0%, #f58220 50%, #d86504 100%);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 18px rgba(245, 130, 32, 0.35);
+      padding: 7px 18px;
+      border-radius: 4px;
+      z-index: 2;
+      text-align: center;
+      width: 100%;
+    }
+
+    .ribbon-title {
+      font-family: var(--font-script);
+      font-size: 27px;
+      color: #ffffff;
+      text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5);
+      letter-spacing: 0.5px;
+      display: block;
+      line-height: 1.2;
+    }
+
+    /* 3D Folded Tails on left and right extending outwards */
+    .ribbon-tail-left {
+      position: absolute;
+      top: 6px;
+      left: -18px;
+      width: 26px;
+      height: 100%;
+      background: #b54f02;
+      clip-path: polygon(100% 0, 100% 100%, 0 100%, 35% 50%, 0 0);
+      z-index: 1;
+    }
+
+    .ribbon-tail-right {
+      position: absolute;
+      top: 6px;
+      right: -18px;
+      width: 26px;
+      height: 100%;
+      background: #b54f02;
+      clip-path: polygon(0 0, 100% 0, 65% 50%, 100% 100%, 0 100%);
+      z-index: 1;
+    }
+
+    /* Fold shadow triangles giving physical 3D folded banner depth */
+    .ribbon-fold-left {
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 6px 6px 0 0;
+      border-color: #632400 transparent transparent transparent;
+      z-index: 1;
+    }
+
+    .ribbon-fold-right {
+      position: absolute;
+      bottom: -6px;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 6px 0 0 6px;
+      border-color: #632400 transparent transparent transparent;
+      z-index: 1;
+    }
+
+    /* ==========================================================================
+       2-COLUMN GRID & 3D FLIP CARD SYSTEM
+       ========================================================================== */
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      padding: 4px 14px 14px 14px;
+    }
+
+    /* 3D Perspective Container */
+    .card-3d-wrapper {
+      perspective: 1000px;
+      height: 235px;
+      cursor: pointer;
+    }
+
+    /* Tactile Spring Physics Wrapper */
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      transform-style: preserve-3d;
+      transition: transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+      box-shadow: var(--shadow-card);
+    }
+
+    /* Tactile Press & Bounce */
+    .card-3d-wrapper:active .card-inner {
+      transform: scale(0.95);
+    }
+
+    /* Flipped State */
+    .card-3d-wrapper.is-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-3d-wrapper.is-flipped:active .card-inner {
+      transform: rotateY(180deg) scale(0.95);
+    }
+
+    /* Glowing Neon Orange on Hover or Flipped */
+    .card-3d-wrapper:hover .card-inner,
+    .card-3d-wrapper.is-flipped .card-inner {
+      box-shadow: 0 10px 28px -2px rgba(0, 0, 0, 0.75), var(--shadow-neon);
+    }
+
+    /* Common Card Face */
+    .card-face {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --------------------------------------------------------------------------
+       CARD FRONT
+       -------------------------------------------------------------------------- */
+    .card-front {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      justify-content: space-between;
+    }
+
+    .card-3d-wrapper:hover .card-front,
+    .card-3d-wrapper.is-flipped .card-front {
+      border-color: var(--border-glow);
+    }
+
+    .food-img-container {
+      position: relative;
+      width: 100%;
+      height: 135px;
+      background: #141414;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Slow continuous floating parallax food animation */
+    .food-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+      animation: slowFloat 4.5s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+
+    @keyframes slowFloat {
+      0% {
+        transform: translateY(0px) scale(1.01);
+      }
+      50% {
+        transform: translateY(-4px) scale(1.04);
+      }
+      100% {
+        transform: translateY(-1px) scale(1.02);
+      }
+    }
+
+    /* Gradient overlay for readability */
+    .food-img-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 55%;
+      background: linear-gradient(to top, rgba(30, 30, 30, 1) 0%, rgba(30, 30, 30, 0) 100%);
+      pointer-events: none;
+    }
+
+    /* Dietary Badge */
+    .diet-badge {
+      position: absolute;
+      top: 9px;
+      left: 9px;
+      width: 16px;
+      height: 16px;
+      background: rgba(18, 18, 18, 0.85);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      z-index: 3;
+    }
+
+    .diet-badge.veg {
+      border: 1.5px solid var(--veg-green);
+    }
+    .diet-badge.veg::after {
+      content: '';
+      width: 7px;
+      height: 7px;
+      background: var(--veg-green);
+      border-radius: 50%;
+    }
+
+    .diet-badge.non-veg {
+      border: 1.5px solid var(--non-veg-red);
+    }
+    .diet-badge.non-veg::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 7px solid var(--non-veg-red);
+    }
+
+    .price-chip {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(18, 18, 18, 0.9);
+      border: 1px solid rgba(245, 130, 32, 0.5);
+      color: var(--primary-orange);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+      z-index: 3;
+    }
+
+    .card-front-content {
+      padding: 8px 10px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex: 1;
+    }
+
+    .item-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-white);
+      line-height: 1.25;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .flip-cue {
+      font-size: 10.5px;
+      color: var(--primary-orange);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .flip-cue svg {
+      transition: transform 0.3s ease;
+    }
+
+    .card-3d-wrapper:hover .flip-cue svg {
+      transform: translateX(3px);
+    }
+
+    /* --------------------------------------------------------------------------
+       CARD BACK (DETAILS & ACTION)
+       -------------------------------------------------------------------------- */
+    .card-back {
+      background: linear-gradient(145deg, #252525 0%, #1a1a1a 100%);
+      border: 1.5px solid var(--primary-orange);
+      transform: rotateY(180deg);
+      padding: 12px;
+      justify-content: space-between;
+    }
+
+    .card-back-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 6px;
+    }
+
+    .back-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-white);
+      max-width: 80%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .flip-back-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-muted);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .flip-back-btn:active {
+      background: var(--primary-orange);
+      color: #fff;
+    }
+
+    .card-back-price {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--primary-orange);
+      margin-top: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .card-back-desc {
+      font-size: 10.5px;
+      line-height: 1.35;
+      color: #b8b8b8;
+      margin: 6px 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .item-meta-tags {
+      display: flex;
+      gap: 5px;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .meta-tag {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Add to Order Button / Quantity Counter */
+    .card-action-box {
+      margin-top: auto;
+    }
+
+    .add-to-order-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #ff9436 0%, #f58220 100%);
+      color: #ffffff;
+      border: none;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(245, 130, 32, 0.35);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .add-to-order-btn:active {
+      transform: scale(0.93);
+    }
+
+    .quantity-counter {
+      display: none;
+      width: 100%;
+      background: #181818;
+      border: 1px solid var(--primary-orange);
+      border-radius: 10px;
+      padding: 4px 6px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .qty-btn {
+      width: 26px;
+      height: 26px;
+      background: var(--primary-orange);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .qty-btn:active {
+      transform: scale(0.88);
+    }
+
+    .qty-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .has-quantity .add-to-order-btn {
+      display: none;
+    }
+    .has-quantity .quantity-counter {
+      display: flex;
+    }
+
+    /* Chef Signature Strip at bottom */
+    .chef-signature-section {
+      margin: 24px 16px 12px 16px;
+      background: linear-gradient(145deg, #1a1a1a 0%, #141414 100%);
+      border: 1px solid rgba(245, 130, 32, 0.3);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .chef-signature-title {
+      font-family: var(--font-script);
+      font-size: 24px;
+      color: var(--primary-orange);
+      margin-bottom: 4px;
+    }
+
+    .chef-signature-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ==========================================================================
+       STICKY BOTTOM ORDER / CART TRAY
+       ========================================================================== */
+    .sticky-cart-tray {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      width: calc(100% - 32px);
+      max-width: 410px;
+      background: linear-gradient(135deg, #242424 0%, #161616 100%);
+      border: 1.5px solid var(--primary-orange);
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 130, 32, 0.4);
+      z-index: 200;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .sticky-cart-tray.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .cart-summary {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cart-count-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary-orange-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .cart-total-amount {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--text-white);
+    }
+
+    .view-order-btn {
+      background: linear-gradient(135deg, #ff9436 0%, #f58220 100%);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 130, 32, 0.5);
+      transition: transform 0.2s;
+    }
+
+    .view-order-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* ==========================================================================
+       TACTILE BOTTOM SHEET MODAL (ORDER REVIEW)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(10px);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 440px;
+      background: #1a1a1a;
+      border-top: 2px solid var(--primary-orange);
+      border-radius: 28px 28px 0 0;
+      padding: 18px 20px 28px 20px;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.open .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 42px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      margin: 0 auto 16px auto;
+    }
+
+    .sheet-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .sheet-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .close-sheet-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .order-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .order-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 12px;
+      background: #242424;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .order-item-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .order-item-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .order-item-price {
+      font-size: 12px;
+      color: var(--primary-orange);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .order-row-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .special-note-input {
+      width: 100%;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 9px 12px;
+      color: #fff;
+      font-size: 12px;
+      margin-bottom: 16px;
+      font-family: var(--font-body);
+      outline: none;
+    }
+    .special-note-input:focus {
+      border-color: var(--primary-orange);
+    }
+
+    .order-bill-calc {
+      background: #141414;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .calc-row.total {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    .send-order-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #ff9436 0%, #f58220 100%);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 18px rgba(245, 130, 32, 0.5);
+    }
+
+    .send-order-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Toast Notification */
+    .toast-popup {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: #252525;
+      border: 1.5px solid var(--primary-orange);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), var(--shadow-neon);
+      z-index: 400;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast-popup.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Viewport Container for Native Mobile Frame -->
+  <div class="app-viewport">
+
+    <!-- APP HEADER -->
+    <header class="app-header">
+      <div class="header-top-row">
+        <div class="nfc-status-pill" id="nfcPill" title="Tap to simulate NFC Scan">
+          <span class="nfc-dot"></span>
+          Table 04 • NFC Verified
+        </div>
+        <div class="table-tag">T-04</div>
+      </div>
+
+      <h1 class="restaurant-title">Grand <span>Royal</span> Bistro</h1>
+      <p class="header-subtext">Signature Shakes, Falooda &amp; Chinese Delicacies</p>
+
+      <div class="flip-instruction-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        Tap any card to 3D flip &amp; reveal prices
+      </div>
+
+      <!-- Live Search Input -->
+      <div class="search-box-row">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="search-input" id="menuSearch" placeholder="Search dishes (e.g. Falooda, Manchurian, Oreo)..." autocomplete="off">
+        <button class="clear-search-btn" id="clearSearch">✕</button>
+      </div>
+
+      <!-- Quick Dietary Filter Chips -->
+      <div class="filter-pills-row" id="filterPills">
+        <button class="filter-btn active" data-filter="all">✨ All Items</button>
+        <button class="filter-btn" data-filter="veg">🟢 Pure Veg</button>
+        <button class="filter-btn" data-filter="non-veg">🔴 Non-Veg</button>
+        <button class="filter-btn" data-filter="bestseller">⭐ Bestsellers</button>
+      </div>
+    </header>
+
+    <!-- STICKY HORIZONTAL CATEGORY NAVIGATION -->
+    <nav class="sticky-nav-container" id="categoryNav">
+      <div class="category-scroll-strip" id="navStrip">
+        <button class="category-pill active" data-target="shakes">🥤 Shakes &amp; Ice Cream</button>
+        <button class="category-pill" data-target="falooda">🍧 Falooda</button>
+        <button class="category-pill" data-target="chinese">🥢 Chinese</button>
+        <button class="category-pill" data-target="limes">🍋 Fresh Limes</button>
+        <button class="category-pill" data-target="dinner">🥘 Dinner &amp; Grills</button>
+        <button class="category-pill" data-target="rice-noodles">🍚 Rice &amp; Noodles</button>
+      </div>
+    </nav>
+
+    <!-- ==========================================================================
+         CATEGORY 1: MILK SHAKES & ICE CREAM
+         ========================================================================== -->
+    <section class="menu-section" id="shakes">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Milk Shake &amp; Ice Cream</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Vennila Shake -->
+        <div class="card-3d-wrapper" data-id="s1" data-name="Vennila Shake" data-price="75" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹75</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80" alt="Vennila Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Vennila Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Vennila Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹75</div>
+              <p class="card-back-desc">Creamy Madagascar vanilla bean churned with chilled whole milk and velvet cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 4 mins</span>
+                <span class="meta-tag">🔥 240 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Strawberry Shake -->
+        <div class="card-3d-wrapper" data-id="s2" data-name="Strawberry Shake" data-price="75" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹75</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1553787499-6f9133860278?w=400&auto=format&fit=crop&q=80" alt="Strawberry Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Strawberry Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Strawberry</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹75</div>
+              <p class="card-back-desc">Crushed sweet alpine strawberries with real fruit pulp and rich whipped ice cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 5 mins</span>
+                <span class="meta-tag">🔥 220 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3: Chocolate Shake -->
+        <div class="card-3d-wrapper" data-id="s3" data-name="Chocolate Shake" data-price="80" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1577805947697-89e18249d767?w=400&auto=format&fit=crop&q=80" alt="Chocolate Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Chocolate Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Chocolate Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Rich Belgian cocoa, dark fudge swirl, chocolate sprinkles, and whipped cream top.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 4 mins</span>
+                <span class="meta-tag">🔥 310 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4: Butter Scotch -->
+        <div class="card-3d-wrapper" data-id="s4" data-name="Butter Scotch" data-price="80" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=400&auto=format&fit=crop&q=80" alt="Butter Scotch" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Butter Scotch</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Butter Scotch</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Golden caramel praline crunch, butterscotch sauce, with rich dairy ice cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 5 mins</span>
+                <span class="meta-tag">🔥 290 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 5: Pista Shake -->
+        <div class="card-3d-wrapper" data-id="s5" data-name="Pista Shake" data-price="80" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=400&auto=format&fit=crop&q=80" alt="Pista Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Pista Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Pista Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Roasted Persian pistachio nuts crushed into fragrant sweet milk cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 5 mins</span>
+                <span class="meta-tag">🔥 270 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 6: Oreo Shake -->
+        <div class="card-3d-wrapper" data-id="s6" data-name="Oreo Shake" data-price="80" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&auto=format&fit=crop&q=80" alt="Oreo Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Oreo Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Oreo Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Loaded with chunky Oreo cookies blended into vanilla cream &amp; chocolate ganache.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 4 mins</span>
+                <span class="meta-tag">🔥 340 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 7: Badam Shake -->
+        <div class="card-3d-wrapper" data-id="s7" data-name="Badam Shake" data-price="100" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹100</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&auto=format&fit=crop&q=80" alt="Badam Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Badam Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Badam Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹100</div>
+              <p class="card-back-desc">Royal almond paste infusion with saffron strands, crushed dry fruits, and thick cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 6 mins</span>
+                <span class="meta-tag">🔥 290 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 8: Mango Shake -->
+        <div class="card-3d-wrapper" data-id="s8" data-name="Mango Shake" data-price="80" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1546173159-315724a31696?w=400&auto=format&fit=crop&q=80" alt="Mango Shake" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Mango Shake</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Mango Shake</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Sweet Alphonso mango pulp churned with rich dairy cream and chilled whole milk.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 5 mins</span>
+                <span class="meta-tag">🔥 260 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         CATEGORY 2: FALOODA
+         ========================================================================== -->
+    <section class="menu-section" id="falooda">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Falooda</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Royal Falooda -->
+        <div class="card-3d-wrapper" data-id="f1" data-name="Royal Falooda" data-price="150" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹150</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=400&auto=format&fit=crop&q=80" alt="Royal Falooda" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Royal Falooda</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Royal Falooda</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹150</div>
+              <p class="card-back-desc">Layered rose syrup, sabja seeds, silky vermicelli noodles, kulfi ice cream &amp; cashews.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 7 mins</span>
+                <span class="meta-tag">🔥 360 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Pista Falooda -->
+        <div class="card-3d-wrapper" data-id="f2" data-name="Pista Falooda" data-price="160" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹160</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1505394033641-40c6ad1178d7?w=400&auto=format&fit=crop&q=80" alt="Pista Falooda" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Pista Falooda</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Pista Falooda</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹160</div>
+              <p class="card-back-desc">Rich pistachio cream, rose jelly, sweet basil seeds, and loaded roasted dry fruits.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 7 mins</span>
+                <span class="meta-tag">🔥 380 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3: Butter Falooda -->
+        <div class="card-3d-wrapper" data-id="f3" data-name="Butter Falooda" data-price="170" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹170</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400&auto=format&fit=crop&q=80" alt="Butter Falooda" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Butter Falooda</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Butter Falooda</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹170</div>
+              <p class="card-back-desc">Butterscotch crunch base, toffee caramel drizzle, vermicelli, and creamy ice cream.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 6 mins</span>
+                <span class="meta-tag">🔥 395 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4: MGS Special Falooda -->
+        <div class="card-3d-wrapper" data-id="f4" data-name="MGS Special Falooda" data-price="210" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹210</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=400&auto=format&fit=crop&q=80" alt="MGS Special Falooda" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1587314168485-3236d6710814?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">MGS Special Falooda</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">MGS Special</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹210</div>
+              <p class="card-back-desc">Triple scoop sundae, fresh fruits, roasted nuts, tutti-frutti, cherry, and saffron rabri.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 8 mins</span>
+                <span class="meta-tag">🔥 450 kcal</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         CATEGORY 3: CHINESE
+         ========================================================================== -->
+    <section class="menu-section" id="chinese">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Chinese</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Veg Manchurian -->
+        <div class="card-3d-wrapper" data-id="c1" data-name="Veg Manchurian" data-price="100" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹100</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&auto=format&fit=crop&q=80" alt="Veg Manchurian" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Veg Manchurian</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Veg Manchurian</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹100</div>
+              <p class="card-back-desc">Crisp veggie dumplings tossed in savory garlic, ginger, dark soy sauce, and scallions.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 10 mins</span>
+                <span class="meta-tag">🌶 Medium</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Chilli Chicken -->
+        <div class="card-3d-wrapper" data-id="c2" data-name="Chilli Chicken" data-price="120" data-diet="non-veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹120</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=400&auto=format&fit=crop&q=80" alt="Chilli Chicken" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Chilli Chicken</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Chilli Chicken</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹120</div>
+              <p class="card-back-desc">Juicy boneless chicken tossed with bell peppers, green chillies, and garlic soy glaze.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 12 mins</span>
+                <span class="meta-tag">🌶 Spicy</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 3: Dragon Chicken -->
+        <div class="card-3d-wrapper" data-id="c3" data-name="Dragon Chicken" data-price="150" data-diet="non-veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹150</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400&auto=format&fit=crop&q=80" alt="Dragon Chicken" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Dragon Chicken</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Dragon Chicken</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹150</div>
+              <p class="card-back-desc">Crispy fried chicken strips coated in spicy red chilli paste, cashew nuts &amp; roasted sesame.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 12 mins</span>
+                <span class="meta-tag">🌶🌶 Extra Spicy</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 4: Shawarma Roll -->
+        <div class="card-3d-wrapper" data-id="c4" data-name="Shawarma Roll" data-price="80" data-diet="non-veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹80</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1561651823-34feb02250e4?w=400&auto=format&fit=crop&q=80" alt="Shawarma Roll" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Shawarma Roll</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Shawarma Roll</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹80</div>
+              <p class="card-back-desc">Slow-roasted spiced chicken wrapped in fresh khubz with garlic toum &amp; crunchy pickles.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 5 mins</span>
+                <span class="meta-tag">⭐ House Special</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 5: Gobi Manchurian -->
+        <div class="card-3d-wrapper" data-id="c5" data-name="Gobi Manchurian" data-price="90" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹90</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80" alt="Gobi Manchurian" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Gobi Manchurian</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Gobi Manchurian</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹90</div>
+              <p class="card-back-desc">Crispy golden cauliflower florets wok-tossed in pungent tangy Manchurian gravy.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 8 mins</span>
+                <span class="meta-tag">🌶 Medium</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 6: Schezwan Chicken -->
+        <div class="card-3d-wrapper" data-id="c6" data-name="Schezwan Chicken" data-price="150" data-diet="non-veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹150</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&auto=format&fit=crop&q=80" alt="Schezwan Chicken" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Schezwan Chicken</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Schezwan Chicken</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹150</div>
+              <p class="card-back-desc">Tender chicken wok-fried with aromatic Sichuan peppercorns, dried red peppers, and garlic.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 11 mins</span>
+                <span class="meta-tag">🌶🌶 Fiery</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         CATEGORY 4: FRESH LIMES
+         ========================================================================== -->
+    <section class="menu-section" id="limes">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Fresh Limes</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Fresh Lime Soda -->
+        <div class="card-3d-wrapper" data-id="l1" data-name="Fresh Lime Soda" data-price="25" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹25</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&auto=format&fit=crop&q=80" alt="Fresh Lime Soda" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Fresh Lime Soda</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Fresh Lime Soda</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹25</div>
+              <p class="card-back-desc">Freshly squeezed green limes with fizzy club soda, rock salt, and sugar syrup.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 2 mins</span>
+                <span class="meta-tag">❄ Chilled</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Mint Lime Cooler -->
+        <div class="card-3d-wrapper" data-id="l2" data-name="Mint Limes Cooler" data-price="35" data-diet="veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹35</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop&q=80" alt="Mint Limes" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Mint Limes Cooler</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Mint Limes</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹35</div>
+              <p class="card-back-desc">Muddled wild garden mint, zesty lime, crushed ice, and effervescent sparkling soda.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 3 mins</span>
+                <span class="meta-tag">🍃 Refreshing</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         CATEGORY 5: DINNER & GRILLS
+         ========================================================================== -->
+    <section class="menu-section" id="dinner">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Dinner</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Parotta -->
+        <div class="card-3d-wrapper" data-id="d1" data-name="Golden Parotta" data-price="15" data-diet="veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge veg"></span>
+                <span class="price-chip">₹15</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=400&auto=format&fit=crop&q=80" alt="Parotta" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Fluffy Parotta</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Fluffy Parotta</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹15</div>
+              <p class="card-back-desc">Multi-layered crispy flatbread made with pure ghee, served hot with aromatic salna.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 4 mins</span>
+                <span class="meta-tag">🔥 Hot</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Chicken Biryani -->
+        <div class="card-3d-wrapper" data-id="d2" data-name="Chicken Dum Biryani" data-price="180" data-diet="non-veg" data-bestseller="true">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹180</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&auto=format&fit=crop&q=80" alt="Chicken Dum Biryani" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Chicken Dum Biryani</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Dum Biryani</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹180</div>
+              <p class="card-back-desc">Aged basmati slow-cooked with tender chicken, caramelized brown onions &amp; saffron.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 8 mins</span>
+                <span class="meta-tag">⭐ Chef Special</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         CATEGORY 6: FRIED RICE & NOODLES
+         ========================================================================== -->
+    <section class="menu-section" id="rice-noodles">
+      <div class="ribbon-wrapper">
+        <div class="ribbon-container">
+          <div class="ribbon-tail-left"></div>
+          <div class="ribbon-banner">
+            <span class="ribbon-title">Fried Rice &amp; Noodles</span>
+          </div>
+          <div class="ribbon-tail-right"></div>
+          <div class="ribbon-fold-left"></div>
+          <div class="ribbon-fold-right"></div>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+
+        <!-- Item 1: Schezwan Fried Rice -->
+        <div class="card-3d-wrapper" data-id="rn1" data-name="Schezwan Chicken Rice" data-price="140" data-diet="non-veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹140</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&auto=format&fit=crop&q=80" alt="Schezwan Fried Rice" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Schezwan Chicken Rice</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Schezwan Rice</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹140</div>
+              <p class="card-back-desc">Fluffy jasmine rice wok-tossed in homemade fiery Sichuan paste with chicken &amp; eggs.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 10 mins</span>
+                <span class="meta-tag">🌶 Spicy</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: Chicken Noodles -->
+        <div class="card-3d-wrapper" data-id="rn2" data-name="Chicken Hakka Noodles" data-price="110" data-diet="non-veg">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="food-img-container">
+                <span class="diet-badge non-veg"></span>
+                <span class="price-chip">₹110</span>
+                <img class="food-img" src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&auto=format&fit=crop&q=80" alt="Chicken Hakka Noodles" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&auto=format&fit=crop&q=80'">
+                <div class="food-img-overlay"></div>
+              </div>
+              <div class="card-front-content">
+                <h3 class="item-title">Chicken Hakka Noodles</h3>
+                <div class="flip-cue">
+                  <span>Tap to flip</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-back-header">
+                <span class="back-title">Hakka Noodles</span>
+                <button class="flip-back-btn" title="Flip Back">✕</button>
+              </div>
+              <div class="card-back-price">₹110</div>
+              <p class="card-back-desc">Long wheat noodles flash-fried with shredded chicken, crunchy cabbage, and dark soy.</p>
+              <div class="item-meta-tags">
+                <span class="meta-tag">⏱ 8 mins</span>
+                <span class="meta-tag">🥢 Classic</span>
+              </div>
+              <div class="card-action-box">
+                <button class="add-to-order-btn">
+                  <span>+ Add</span>
+                </button>
+                <div class="quantity-counter">
+                  <button class="qty-btn btn-minus">−</button>
+                  <span class="qty-val">1</span>
+                  <button class="qty-btn btn-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Chef's Authentic Signature Footer -->
+    <div class="chef-signature-section">
+      <div class="chef-signature-title">Chef's Gourmet Promise</div>
+      <p class="chef-signature-desc">Crafted fresh on every NFC order using 100% genuine ingredients, real dairy cream, and secret heritage spices.</p>
+    </div>
+
+    <!-- STICKY BOTTOM ORDER TRAY -->
+    <div class="sticky-cart-tray" id="cartTray">
+      <div class="cart-summary">
+        <span class="cart-count-badge" id="cartCountBadge">0 Items Selected</span>
+        <span class="cart-total-amount" id="cartTotal">₹0</span>
+      </div>
+      <button class="view-order-btn" id="openSheetBtn">
+        <span>View Order</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- ORDER SUMMARY BOTTOM SHEET MODAL -->
+    <div class="modal-backdrop" id="orderModal">
+      <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title-row">
+          <div>
+            <h3 class="sheet-title">Table 04 Order</h3>
+            <span style="font-size: 11px; color: var(--primary-orange);">Direct Table Server Transmission</span>
+          </div>
+          <button class="close-sheet-btn" id="closeSheetBtn">✕</button>
+        </div>
+
+        <div class="order-items-list" id="modalItemsList">
+          <!-- Dynamic order items injected here -->
+        </div>
+
+        <!-- Optional Chef Note -->
+        <input type="text" class="special-note-input" placeholder="Add note for chef (e.g. Less spicy, No ice)...">
+
+        <div class="order-bill-calc">
+          <div class="calc-row">
+            <span>Item Subtotal</span>
+            <span id="billSubtotal">₹0</span>
+          </div>
+          <div class="calc-row">
+            <span>GST &amp; Restaurant Tax (5%)</span>
+            <span id="billTax">₹0</span>
+          </div>
+          <div class="calc-row total">
+            <span>Total Payable</span>
+            <span id="billGrandTotal">₹0</span>
+          </div>
+        </div>
+
+        <button class="send-order-btn" id="sendOrderBtn">
+          <span>🔔 Confirm &amp; Alert Waiter</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TACTILE TOAST POPUP -->
+    <div class="toast-popup" id="toast">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-orange)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="toastMsg">Order Sent to Kitchen!</span>
+    </div>
+
+  </div> <!-- /.app-viewport -->
+
+  <!-- ==========================================================================
+       VANILLA JAVASCRIPT: 3D CARD INTERACTIONS, SOUND, HAPTICS, AND CART
+       ========================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ------------------------------------------------------------------------
+      // State Management
+      // ------------------------------------------------------------------------
+      const cart = {}; // { itemId: { name, price, qty } }
+
+      // Web Audio API Synthesizer for tactile physical feedback
+      let audioCtx = null;
+      function playTactileFeedback(type = 'tap') {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!audioCtx && AudioContext) {
+            audioCtx = new AudioContext();
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          if (!audioCtx) return;
+
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          const now = audioCtx.currentTime;
+
+          if (type === 'flip') {
+            // Smooth woody flip swoosh
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(320, now);
+            osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
+          } else if (type === 'add') {
+            // Cheerful bright pop
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.exponentialRampToValueAtTime(900, now + 0.1);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+          } else if (type === 'nfc') {
+            // High tech chime
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.setValueAtTime(800, now + 0.08);
+            gain.gain.setValueAtTime(0.09, now);
+            gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
+            osc.start(now);
+            osc.stop(now + 0.22);
+          }
+        } catch (e) {
+          // Audio safe fallback
+        }
+
+        // Native Vibration Haptics
+        if (navigator.vibrate) {
+          try {
+            navigator.vibrate(type === 'add' ? [15, 30, 20] : (type === 'nfc' ? [30, 50, 30] : 12));
+          } catch (e) {}
+        }
+      }
+
+      // NFC Pill Re-tap interaction
+      const nfcPill = document.getElementById('nfcPill');
+      if (nfcPill) {
+        nfcPill.addEventListener('click', () => {
+          playTactileFeedback('nfc');
+          showToast('NFC Tag Verified • Table 04 Connected ⚡');
+        });
+      }
+
+      // ------------------------------------------------------------------------
+      // 3D Card Flip & Tap Mechanics
+      // ------------------------------------------------------------------------
+      const cardWrappers = document.querySelectorAll('.card-3d-wrapper');
+
+      cardWrappers.forEach(card => {
+        // Tap card to flip
+        card.addEventListener('click', (e) => {
+          // If the tap was inside an interactive control (button, qty counter), skip flipping
+          if (e.target.closest('.add-to-order-btn') || 
+              e.target.closest('.quantity-counter')) {
+            return;
+          }
+
+          playTactileFeedback('flip');
+          card.classList.toggle('is-flipped');
+        });
+
+        // Dedicated flip-back 'X' button on card back
+        const flipBackBtn = card.querySelector('.flip-back-btn');
+        if (flipBackBtn) {
+          flipBackBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playTactileFeedback('flip');
+            card.classList.remove('is-flipped');
+          });
+        }
+
+        // Add to Order Button
+        const addBtn = card.querySelector('.add-to-order-btn');
+        const qtyBox = card.querySelector('.quantity-counter');
+        const qtyVal = card.querySelector('.qty-val');
+        const btnMinus = card.querySelector('.btn-minus');
+        const btnPlus = card.querySelector('.btn-plus');
+
+        const itemId = card.dataset.id;
+        const itemName = card.dataset.name;
+        const itemPrice = parseInt(card.dataset.price, 10);
+
+        if (addBtn) {
+          addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playTactileFeedback('add');
+            updateCartItem(itemId, itemName, itemPrice, 1);
+            card.classList.add('has-quantity');
+            qtyVal.textContent = 1;
+            showToast(`Added ${itemName}`);
+          });
+        }
+
+        if (btnPlus) {
+          btnPlus.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playTactileFeedback('add');
+            const currentQty = (cart[itemId] ? cart[itemId].qty : 0) + 1;
+            updateCartItem(itemId, itemName, itemPrice, currentQty);
+            qtyVal.textContent = currentQty;
+          });
+        }
+
+        if (btnMinus) {
+          btnMinus.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playTactileFeedback('add');
+            const currentQty = (cart[itemId] ? cart[itemId].qty : 1) - 1;
+            if (currentQty <= 0) {
+              updateCartItem(itemId, itemName, itemPrice, 0);
+              card.classList.remove('has-quantity');
+              qtyVal.textContent = 1;
+            } else {
+              updateCartItem(itemId, itemName, itemPrice, currentQty);
+              qtyVal.textContent = currentQty;
+            }
+          });
+        }
+      });
+
+      // ------------------------------------------------------------------------
+      // Live Search Filtering
+      // ------------------------------------------------------------------------
+      const menuSearch = document.getElementById('menuSearch');
+      const clearSearch = document.getElementById('clearSearch');
+
+      function filterMenu() {
+        const query = menuSearch.value.trim().toLowerCase();
+        const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+
+        if (query.length > 0) {
+          clearSearch.style.display = 'flex';
+        } else {
+          clearSearch.style.display = 'none';
+        }
+
+        cardWrappers.forEach(card => {
+          const name = card.dataset.name.toLowerCase();
+          const diet = card.dataset.diet;
+          const isBestseller = card.dataset.bestseller === 'true';
+
+          let matchesQuery = query === '' || name.includes(query);
+          let matchesFilter = false;
+
+          if (activeFilter === 'all') matchesFilter = true;
+          else if (activeFilter === 'veg' && diet === 'veg') matchesFilter = true;
+          else if (activeFilter === 'non-veg' && diet === 'non-veg') matchesFilter = true;
+          else if (activeFilter === 'bestseller' && isBestseller) matchesFilter = true;
+
+          card.style.display = (matchesQuery && matchesFilter) ? 'block' : 'none';
+        });
+
+        // Hide empty category sections automatically so only matched categories appear
+        sections.forEach(sec => {
+          const cards = sec.querySelectorAll('.card-3d-wrapper');
+          let hasVisible = false;
+          cards.forEach(c => {
+            if (c.style.display !== 'none') hasVisible = true;
+          });
+          sec.style.display = hasVisible ? 'block' : 'none';
+        });
+      }
+
+      menuSearch.addEventListener('input', filterMenu);
+      clearSearch.addEventListener('click', () => {
+        menuSearch.value = '';
+        filterMenu();
+        menuSearch.focus();
+      });
+
+      // ------------------------------------------------------------------------
+      // Cart Management & Bottom Sheet
+      // ------------------------------------------------------------------------
+      const cartTray = document.getElementById('cartTray');
+      const cartCountBadge = document.getElementById('cartCountBadge');
+      const cartTotal = document.getElementById('cartTotal');
+      const orderModal = document.getElementById('orderModal');
+      const openSheetBtn = document.getElementById('openSheetBtn');
+      const closeSheetBtn = document.getElementById('closeSheetBtn');
+      const modalItemsList = document.getElementById('modalItemsList');
+      const billSubtotal = document.getElementById('billSubtotal');
+      const billTax = document.getElementById('billTax');
+      const billGrandTotal = document.getElementById('billGrandTotal');
+      const sendOrderBtn = document.getElementById('sendOrderBtn');
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+
+      function updateCartItem(id, name, price, qty) {
+        if (qty <= 0) {
+          delete cart[id];
+        } else {
+          cart[id] = { name, price, qty };
+        }
+        renderCartSummary();
+      }
+
+      function renderCartSummary() {
+        let totalItems = 0;
+        let subtotal = 0;
+
+        for (const id in cart) {
+          totalItems += cart[id].qty;
+          subtotal += cart[id].price * cart[id].qty;
+        }
+
+        if (totalItems > 0) {
+          cartCountBadge.textContent = `${totalItems} ${totalItems === 1 ? 'Item' : 'Items'} Selected`;
+          cartTotal.textContent = `₹${subtotal}`;
+          cartTray.classList.add('visible');
+        } else {
+          cartTray.classList.remove('visible');
+          orderModal.classList.remove('open');
+        }
+
+        // Update modal values
+        const tax = Math.round(subtotal * 0.05);
+        const grandTotal = subtotal + tax;
+        billSubtotal.textContent = `₹${subtotal}`;
+        billTax.textContent = `₹${tax}`;
+        billGrandTotal.textContent = `₹${grandTotal}`;
+
+        // Render modal items
+        modalItemsList.innerHTML = '';
+        for (const id in cart) {
+          const item = cart[id];
+          const row = document.createElement('div');
+          row.className = 'order-item-row';
+          row.innerHTML = `
+            <div class="order-item-info">
+              <span class="order-item-name">${item.name}</span>
+              <span class="order-item-price">₹${item.price} × ${item.qty} = ₹${item.price * item.qty}</span>
+            </div>
+            <div class="order-row-controls">
+              <button class="qty-btn" onclick="modifyFromModal('${id}', -1)">−</button>
+              <span class="qty-val" style="min-width: 18px; text-align: center;">${item.qty}</span>
+              <button class="qty-btn" onclick="modifyFromModal('${id}', 1)">+</button>
+            </div>
+          `;
+          modalItemsList.appendChild(row);
+        }
+      }
+
+      window.modifyFromModal = (id, delta) => {
+        playTactileFeedback('add');
+        if (!cart[id]) return;
+        const newQty = cart[id].qty + delta;
+        const card = document.querySelector(`.card-3d-wrapper[data-id="${id}"]`);
+        
+        if (card) {
+          const qtyVal = card.querySelector('.qty-val');
+          if (newQty <= 0) {
+            card.classList.remove('has-quantity');
+            if (qtyVal) qtyVal.textContent = 1;
+          } else {
+            if (qtyVal) qtyVal.textContent = newQty;
+          }
+        }
+
+        updateCartItem(id, cart[id].name, cart[id].price, newQty);
+      };
+
+      openSheetBtn.addEventListener('click', () => {
+        playTactileFeedback('tap');
+        orderModal.classList.add('open');
+      });
+
+      closeSheetBtn.addEventListener('click', () => {
+        playTactileFeedback('tap');
+        orderModal.classList.remove('open');
+      });
+
+      orderModal.addEventListener('click', (e) => {
+        if (e.target === orderModal) {
+          orderModal.classList.remove('open');
+        }
+      });
+
+      sendOrderBtn.addEventListener('click', () => {
+        playTactileFeedback('add');
+        orderModal.classList.remove('open');
+        showToast('Table 04 Order Confirmed! Server Alerted 🚀');
+      });
+
+      function showToast(msg) {
+        toastMsg.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2800);
+      }
+
+      // ------------------------------------------------------------------------
+      // Category Navigation Smooth Scroll & Scrollspy
+      // ------------------------------------------------------------------------
+      const navPills = document.querySelectorAll('.category-pill');
+      const sections = document.querySelectorAll('.menu-section');
+      const navStrip = document.getElementById('navStrip');
+
+      navPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          playTactileFeedback('tap');
+          const targetId = pill.dataset.target;
+          const targetSection = document.getElementById(targetId);
+
+          if (targetSection) {
+            navPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            // Scroll to section with sticky header offset
+            const navHeight = document.getElementById('categoryNav').offsetHeight;
+            const targetPos = targetSection.getBoundingClientRect().top + window.pageYOffset - navHeight - 10;
+            window.scrollTo({
+              top: targetPos,
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+
+      // IntersectionObserver for Scrollspy
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.id;
+            navPills.forEach(pill => {
+              const matches = pill.dataset.target === sectionId;
+              pill.classList.toggle('active', matches);
+              if (matches) {
+                pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }
+            });
+          }
+        });
+      }, {
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0
+      });
+
+      sections.forEach(sec => observer.observe(sec));
+
+      // ------------------------------------------------------------------------
+      // Dietary Filters (Veg / Non-Veg / Bestseller / All)
+      // ------------------------------------------------------------------------
+      const filterBtns = document.querySelectorAll('.filter-btn');
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          playTactileFeedback('tap');
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          filterMenu();
+        });
+      });
+
+    });
+  </script>
+</body>
+</html>
