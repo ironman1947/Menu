@@ -47,13 +47,24 @@
       user-select: none;
     }
 
-    html, body {
+    html {
       background-color: #0a0a0a;
       color: var(--text-offwhite);
       font-family: var(--font-body);
       min-height: 100vh;
-      overflow-x: hidden;
-      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: auto; /* Allow instant 60fps natural drag physics */
+    }
+
+    body {
+      background-color: #0a0a0a;
+      color: var(--text-offwhite);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: clip;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: none;
+      touch-action: pan-y;
     }
 
     /* Desktop Viewport Wrapper for Native Smartphone Preview */
@@ -71,13 +82,13 @@
 
     @media (min-width: 600px) {
       body {
-        padding: 24px 0;
+        padding: 20px 0;
         background: radial-gradient(circle at 50% 15%, #242424 0%, #070707 100%);
       }
       .app-viewport {
-        border-radius: 38px;
-        border: 2.5px solid rgba(255, 255, 255, 0.12);
-        overflow: hidden;
+        border-radius: 36px;
+        border: 2px solid rgba(255, 255, 255, 0.12);
+        /* DO NOT use overflow: hidden here as it breaks position: sticky on scroll! */
       }
     }
 
@@ -277,15 +288,17 @@
        STICKY CATEGORY NAVIGATION (HORIZONTAL SCROLLING)
        ========================================================================== */
     .sticky-nav-container {
+      position: -webkit-sticky;
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(18, 18, 18, 0.94);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: rgba(18, 18, 18, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding: 10px 0;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+      transform: translateZ(0);
     }
 
     .category-scroll-strip {
@@ -295,7 +308,14 @@
       padding: 2px 14px;
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
-      scroll-behavior: smooth;
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
+    }
+
+    .menu-section {
+      scroll-margin-top: 68px;
+      content-visibility: auto;
+      contain-intrinsic-size: 0 450px;
     }
 
     .category-scroll-strip::-webkit-scrollbar {
@@ -435,6 +455,8 @@
       perspective: 1000px;
       height: 235px;
       cursor: pointer;
+      touch-action: pan-y;
+      -webkit-touch-callout: none;
     }
 
     /* Tactile Spring Physics Wrapper */
@@ -515,7 +537,6 @@
       object-fit: cover;
       transition: transform 0.4s ease;
       animation: slowFloat 4.5s ease-in-out infinite alternate;
-      will-change: transform;
     }
 
     @keyframes slowFloat {
@@ -2441,16 +2462,44 @@
       }
 
       // ------------------------------------------------------------------------
-      // 3D Card Flip & Tap Mechanics
+      // 3D Card Flip & Tap Mechanics (with Touch-Drag Scrolling Protection)
       // ------------------------------------------------------------------------
       const cardWrappers = document.querySelectorAll('.card-3d-wrapper');
 
       cardWrappers.forEach(card => {
-        // Tap card to flip
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let hasDragged = false;
+
+        card.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches[0]) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            hasDragged = false;
+          }
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+          if (e.touches && e.touches[0]) {
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 7 || dy > 7) {
+              hasDragged = true; // User is scrolling vertically or horizontally!
+            }
+          }
+        }, { passive: true });
+
+        // Tap card to flip (suppressed if user was scrolling)
         card.addEventListener('click', (e) => {
+          if (hasDragged) {
+            hasDragged = false;
+            return; // Ignore clicks resulting from scroll gestures
+          }
+
           // If the tap was inside an interactive control (button, qty counter), skip flipping
           if (e.target.closest('.add-to-order-btn') || 
-              e.target.closest('.quantity-counter')) {
+              e.target.closest('.quantity-counter') ||
+              e.target.closest('.qty-btn')) {
             return;
           }
 
@@ -2694,6 +2743,20 @@
       const navPills = document.querySelectorAll('.category-pill');
       const sections = document.querySelectorAll('.menu-section');
       const navStrip = document.getElementById('navStrip');
+      let isProgrammaticScroll = false;
+      let scrollTimer = null;
+
+      function centerNavPill(pill) {
+        if (!navStrip || !pill) return;
+        const pillLeft = pill.offsetLeft;
+        const pillWidth = pill.offsetWidth;
+        const stripWidth = navStrip.offsetWidth;
+        const scrollTarget = pillLeft - (stripWidth / 2) + (pillWidth / 2);
+        navStrip.scrollTo({
+          left: scrollTarget,
+          behavior: 'smooth'
+        });
+      }
 
       navPills.forEach(pill => {
         pill.addEventListener('click', () => {
@@ -2702,22 +2765,29 @@
           const targetSection = document.getElementById(targetId);
 
           if (targetSection) {
+            isProgrammaticScroll = true;
+            clearTimeout(scrollTimer);
+
             navPills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
+            centerNavPill(pill);
 
-            // Scroll to section with sticky header offset
-            const navHeight = document.getElementById('categoryNav').offsetHeight;
-            const targetPos = targetSection.getBoundingClientRect().top + window.pageYOffset - navHeight - 10;
-            window.scrollTo({
-              top: targetPos,
-              behavior: 'smooth'
+            targetSection.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
             });
+
+            scrollTimer = setTimeout(() => {
+              isProgrammaticScroll = false;
+            }, 750);
           }
         });
       });
 
-      // IntersectionObserver for Scrollspy
+      // IntersectionObserver for Scrollspy (active during manual scrolling)
       const observer = new IntersectionObserver((entries) => {
+        if (isProgrammaticScroll) return; // Don't fight while scrolling to clicked pill!
+
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const sectionId = entry.target.id;
@@ -2725,13 +2795,13 @@
               const matches = pill.dataset.target === sectionId;
               pill.classList.toggle('active', matches);
               if (matches) {
-                pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                centerNavPill(pill);
               }
             });
           }
         });
       }, {
-        rootMargin: '-20% 0px -70% 0px',
+        rootMargin: '-15% 0px -65% 0px',
         threshold: 0
       });
 
